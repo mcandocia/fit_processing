@@ -6,6 +6,8 @@ Requirements:
 
  * Python 3.5+
 
+ * BeautifulSoup
+
  * fitparse (installation instructions below)
 
  * FIT files to convert (if using that feature)
