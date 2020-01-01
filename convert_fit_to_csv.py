@@ -11,6 +11,10 @@ import os
 import fitparse
 import pytz
 from copy import copy
+from tzwhere import tzwhere
+
+print('Initializing tzwhere')
+tzwhere = tzwhere.tzwhere()
 
 
 #for general tracks
@@ -45,6 +49,7 @@ all_allowed_fields = set(allowed_fields + lap_fields + start_fields)
 
 UTC = pytz.UTC
 CST = pytz.timezone('US/Central')
+
 
 #files beyond the main file are assumed to be created, as the log will be updated only after they are created
 ALT_FILENAME = True
@@ -136,6 +141,10 @@ def write_fitfile_to_csv(
         is_overwritten=False,
         fit_ignore_splits_and_laps=False
 ):
+    local_tz = CST
+    changed_tz = False
+    position_long = None
+    position_lat = None
     messages = fitfile.messages
     data = []
     lap_data = []
@@ -158,9 +167,23 @@ def write_fitfile_to_csv(
         #check for important data types
         mdata = {}
         for field in fields:
+            if not changed_tz and field.name in ['position_lat','position_long', 'start_position_lat','start_position_long']:
+                if 'lat' in field.name:
+                    position_lat = float(field.value)
+                else:
+                    position_long = float(field.value)
+                if position_lat is not None and position_long is not None:
+                    changed_tz = True
+                    tz_name = tzwhere.tzNameAt(position_lat, position_long)
+                    local_tz = pytz.timezone(tz_name)
+                    if tz_name != 'US/Central':
+                        print('Using timezone %s' % tz_name)
+                    
+                
             if field.name in all_allowed_fields:
-                if field.name=='timestamp':
-                    mdata[field.name] = UTC.localize(field.value).astimezone(CST)
+                # currently saving timezone conversion to end, but keeping this here for now
+                if field.name=='timestamp' and False:
+                    mdata[field.name] = UTC.localize(field.value).astimezone(local_tz)
                 else:
                     mdata[field.name] = field.value
         # this is sort of a janky way of determining field type, but it works for now
@@ -179,6 +202,11 @@ def write_fitfile_to_csv(
             lap_data.append(mdata)
         elif not skip_start:
             start_data.append(mdata)
+
+    # localize timezone
+    for row in data + lap_data + start_data:
+        if 'timestamp' in row:
+            row['timestamp'] = UTC.localize(row['timestamp']).astimezone(local_tz)
             
     #write to csv
     #general track info

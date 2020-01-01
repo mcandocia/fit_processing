@@ -10,6 +10,10 @@ Requirements:
 
  * fitparse (installation instructions below)
 
+ * tzwhere (to localize timezones)
+
+ * pytz (to localize timezones)
+
  * FIT files to convert (if using that feature)
 
  * GPX files to convert (if using that feature)
