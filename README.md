@@ -14,6 +14,8 @@ Requirements:
 
  * pytz (to localize timezones)
 
+ * numpy (to calculate workout variables)
+
  * FIT files to convert (if using that feature)
 
  * GPX files to convert (if using that feature)
