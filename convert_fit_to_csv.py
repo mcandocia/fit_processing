@@ -16,12 +16,13 @@ from tzwhere import tzwhere
 print('Initializing tzwhere')
 tzwhere = tzwhere.tzwhere()
 
+tz_fields = ['timestamp_utc', 'timezone']
 
 #for general tracks
 allowed_fields = ['timestamp','position_lat','position_long', 'distance',
 'enhanced_altitude', 'altitude','enhanced_speed',
                  'speed', 'heart_rate','cadence','fractional_cadence',
-                 'temperature']
+                 'temperature'] + tz_fields
 
 # if gps data is spotty, but you want to keep HR/temp data while the clock is running, you can remove
 # 'position_lat' and 'position_long' from here
@@ -37,13 +38,15 @@ lap_fields = ['timestamp','start_time','start_position_lat','start_position_long
                'event','event_type','avg_heart_rate','max_heart_rate',
                'avg_running_cadence','max_running_cadence',
                'lap_trigger','sub_sport','avg_fractional_cadence','max_fractional_cadence',
-               'total_fractional_cycles','avg_vertical_oscillation','avg_temperature','max_temperature']
+               'total_fractional_cycles','avg_vertical_oscillation','avg_temperature','max_temperature'] + tz_fields
 #last field above manually generated
 lap_required_fields = ['timestamp', 'start_time','lap_trigger']
 
 #start/stop events
-start_fields = ['timestamp','timer_trigger','event','event_type','event_group']
+start_fields = ['timestamp','timer_trigger','event','event_type','event_group'] 
 start_required_fields = copy(start_fields)
+start_fields += tz_fields
+
 #
 all_allowed_fields = set(allowed_fields + lap_fields + start_fields)
 
@@ -141,6 +144,7 @@ def write_fitfile_to_csv(
         is_overwritten=False,
         fit_ignore_splits_and_laps=False
 ):
+    tz_name = ''
     local_tz = CST
     changed_tz = False
     position_long = None
@@ -169,9 +173,15 @@ def write_fitfile_to_csv(
         for field in fields:
             if not changed_tz and field.name in ['position_lat','position_long', 'start_position_lat','start_position_long']:
                 if 'lat' in field.name:
-                    position_lat = float(field.value)
+                    try:
+                        position_lat = float(field.value)
+                    except TypeError:
+                        pass
                 else:
-                    position_long = float(field.value)
+                    try:
+                        position_long = float(field.value)
+                    except TypeError:
+                        pass
                 if position_lat is not None and position_long is not None:
                     changed_tz = True
                     tz_name = tzwhere.tzNameAt(position_lat, position_long)
@@ -206,7 +216,9 @@ def write_fitfile_to_csv(
     # localize timezone
     for row in data + lap_data + start_data:
         if 'timestamp' in row:
+            row['timestamp_utc'] = row['timestamp']
             row['timestamp'] = UTC.localize(row['timestamp']).astimezone(local_tz)
+            row['timezone'] = tz_name
             
     #write to csv
     #general track info
@@ -237,5 +249,9 @@ def write_fitfile_to_csv(
     if not is_overwritten:
         append_log(original_filename, fit_processed_csv_dir)
 
+    if not changed_tz:
+        print('TZ IS NOT CHANGED!')
+
 if __name__=='__main__':
+    raise NotImplementedError('There is no way to currently run this as a command-line script. It must be imported. Run process_all.py instead.')
     main()
