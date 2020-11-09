@@ -185,7 +185,23 @@ def write_fitfile_to_csv(
                 if position_lat is not None and position_long is not None:
                     changed_tz = True
                     tz_name = tzwhere.tzNameAt(position_lat, position_long)
-                    local_tz = pytz.timezone(tz_name)
+                    if tz_name is None:
+                        for latoff in [-0.1, 0, 0.1]:
+                            for longoff in [-0.1, 0, 0.1]:
+                                tz_name = tzwhere.tzNameAt(
+                                    position_lat + latoff,
+                                    position_long + longoff
+                                )
+                                if tz_name is not None:
+                                    break
+                                
+                    try:
+                        local_tz = pytz.timezone(tz_name)
+                    except Exception as e:
+                        print('TZ NAME: %s' % tz_name)
+                        print('lat/lon: (%s/%s)' % (position_lat, position_long))
+                        print('outfile name: %s' % output_file)
+                        raise e
                     if tz_name != 'US/Central':
                         print('Using timezone %s' % tz_name)
                     
