@@ -22,7 +22,7 @@ Requirements:
 
 First, install `fitparse`
 
-    sudo pip3 install -e git+https://github.com/dtcooper/python-fitparse#egg=python-fitparse
+    sudo pip3 install -e git+https://github.com/dtcooper/python-fitparse#egg=fitparse
 
 OR
 
